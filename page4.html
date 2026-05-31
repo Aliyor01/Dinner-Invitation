@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>What should we eat?</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;font-family:'Cormorant Garamond',Georgia,serif}
+    body{
+      min-height:100vh;overflow-x:hidden;overflow-y:auto;
+      background:linear-gradient(160deg,#ffd6ed 0%,#ffe8f5 40%,#e8d5ff 100%);
+    }
+    canvas{position:fixed;inset:0;pointer-events:none;z-index:0}
+    .scene{
+      position:relative;z-index:2;
+      min-height:100vh;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      padding:48px 24px;
+    }
+
+    @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+
+    h1{
+      font-size:clamp(24px,6vw,46px);color:#2b0f2f;font-weight:400;
+      text-align:center;margin-bottom:6px;
+      animation:fadeUp .7s .1s both;
+    }
+    .sub{
+      font-size:clamp(16px,3.5vw,24px);font-style:italic;color:rgba(43,15,47,.65);
+      text-align:center;margin-bottom:36px;
+      animation:fadeUp .7s .25s both;
+    }
+
+    .grid{
+      display:grid;grid-template-columns:repeat(3,1fr);gap:18px;
+      width:100%;max-width:760px;
+      animation:fadeUp .7s .4s both;
+    }
+    @media(max-width:560px){.grid{grid-template-columns:repeat(2,1fr);gap:14px}}
+
+    .card{
+      background:rgba(255,255,255,.62);backdrop-filter:blur(10px);
+      border-radius:20px;padding:26px 16px;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+      cursor:pointer;border:2px solid transparent;
+      transition:transform .22s cubic-bezier(.2,.9,.25,1),box-shadow .22s,border-color .2s,background .2s;
+      box-shadow:0 4px 20px rgba(90,20,60,.07);
+    }
+    .card:hover{transform:translateY(-8px) scale(1.03);box-shadow:0 18px 48px rgba(90,20,60,.12)}
+    .card.selected{
+      border-color:rgba(255,90,162,.55);background:rgba(255,230,243,.85);
+      transform:scale(1.05);box-shadow:0 18px 54px rgba(255,90,162,.2);
+    }
+    .card-emoji{font-size:clamp(34px,8vw,48px);line-height:1}
+    .card-label{font-size:clamp(14px,3vw,18px);color:#2b0f2f;text-align:center;font-weight:400}
+
+    .btn-cont{
+      font-family:inherit;font-size:clamp(17px,3.5vw,22px);
+      padding:14px 44px;border-radius:50px;border:none;cursor:pointer;
+      background:linear-gradient(135deg,#ff5aa2,#ff9ed2);
+      color:#fff;letter-spacing:.3px;
+      box-shadow:0 8px 32px rgba(255,90,162,.3);
+      margin-top:36px;
+      opacity:0;transform:scale(.9);
+      transition:opacity .5s,transform .5s,box-shadow .2s;
+      animation:fadeUp .7s .6s both;
+    }
+    .btn-cont.show{opacity:1;transform:none}
+    .btn-cont:hover{box-shadow:0 14px 44px rgba(255,90,162,.45);transform:translateY(-2px) scale(1.04)!important}
+    .btn-cont:active{transform:scale(.97)!important}
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <main class="scene">
+    <h1>Now for the most important decision 😌</h1>
+    <p class="sub">What should we eat?</p>
+    <div class="grid" id="grid">
+      <div class="card" data-v="Burgers"><div class="card-emoji">🍔</div><div class="card-label">Burgers</div></div>
+      <div class="card" data-v="Tacos"><div class="card-emoji">🌮</div><div class="card-label">Tacos</div></div>
+      <div class="card" data-v="Pasta"><div class="card-emoji">🍝</div><div class="card-label">Pasta</div></div>
+      <div class="card" data-v="Korean Food"><div class="card-emoji">🍜</div><div class="card-label">Korean Food</div></div>
+      <div class="card" data-v="Traditional Cuisine"><div class="card-emoji">🥘</div><div class="card-label">Traditional Cuisine</div></div>
+      <div class="card" data-v="Surprise Me"><div class="card-emoji">🎲</div><div class="card-label">Surprise Me</div></div>
+    </div>
+    <button class="btn-cont" id="cont">Continue ❤️</button>
+  </main>
+  <script>
+  (function(){
+    const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+    let W,H;function rs(){W=cv.width=innerWidth;H=cv.height=innerHeight}rs();addEventListener('resize',rs);
+    const ps=[];function sp(x,y){ps.push({x,y,vx:(Math.random()-.5)*.5,vy:(Math.random()-.6)*.6,life:90+Math.random()*60,size:Math.random()*4+2,h:340+Math.random()*25})}
+    for(let i=0;i<35;i++) sp(Math.random()*innerWidth,Math.random()*innerHeight);
+    function loop(){ctx.clearRect(0,0,W,H);
+      ps.forEach((p,i)=>{p.x+=p.vx;p.y+=p.vy;p.life--;
+        ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+        ctx.fillStyle=`hsla(${p.h},80%,72%,${Math.max(0,p.life/160)})`;ctx.fill();
+        if(p.y<-5)p.y=H+5;if(p.x<-5)p.x=W+5;if(p.x>W+5)p.x=-5;
+        if(p.life<0)ps.splice(i,1);
+      });requestAnimationFrame(loop);}loop();
+
+    let sel=null;
+    const cont=document.getElementById('cont');
+    document.querySelectorAll('.card').forEach(c=>{
+      c.addEventListener('click',()=>{
+        if(sel)sel.classList.remove('selected');
+        c.classList.add('selected');sel=c;
+        cont.classList.add('show');
+        // burst
+        const r=c.getBoundingClientRect();
+        for(let i=0;i<12;i++) ps.push({x:r.left+r.width/2,y:r.top+r.height/2,vx:(Math.random()-.5)*3,vy:(Math.random()-1)*3,life:60+Math.random()*40,size:Math.random()*4+2,h:340+Math.random()*20});
+      });
+    });
+    cont.addEventListener('click',()=>{
+      if(!sel)return;
+      localStorage.setItem('date_food',sel.dataset.v);
+      document.body.style.transition='opacity .5s';document.body.style.opacity=0;
+      setTimeout(()=>location.href='page5.html',500);
+    });
+  })();
+  </script>
+</body>
+</html>

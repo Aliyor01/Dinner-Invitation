@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Would you go to dinner with me?</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --pink:#ff5aa2;--bg1:#FFD1DC;--bg2:#e8d5ff;--text:#2b0f2f;
+    }
+    html,body{height:100%;font-family:'Cormorant Garamond',Georgia,serif}
+    body{
+      min-height:100vh;overflow:hidden;
+      background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 100%);
+      display:flex;align-items:center;justify-content:center;
+    }
+
+    /* ── pink wave entrance overlay ── */
+    #wave-in{
+      position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden;
+    }
+    #wave-in svg{position:absolute;inset:0;width:100%;height:100%}
+    #wave-in.done{display:none}
+
+    canvas{position:fixed;inset:0;pointer-events:none;z-index:1}
+    .scene{
+      position:relative;z-index:3;text-align:center;
+      padding:40px 24px;max-width:580px;
+      opacity:0;transition:opacity .5s ease .3s;
+    }
+    .scene.visible{opacity:1}
+
+    @keyframes fadeUp{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+    @keyframes popIn{from{opacity:0;transform:scale(.78)}to{opacity:1;transform:scale(1)}}
+    @keyframes heartBeat{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+
+    .teaser{
+      font-size:clamp(15px,3.5vw,21px);font-style:italic;
+      color:rgba(43,15,47,.68);letter-spacing:.5px;margin-bottom:16px;
+      animation:fadeUp .65s cubic-bezier(.2,.9,.25,1) .5s both;
+    }
+    .question{
+      font-size:clamp(26px,7vw,52px);font-weight:400;color:var(--text);
+      line-height:1.25;margin-bottom:12px;
+      animation:fadeUp .65s cubic-bezier(.2,.9,.25,1) .75s both;
+    }
+    .emoji-accent{
+      display:inline-block;
+      animation:popIn .45s cubic-bezier(.2,.9,.25,1) 1.2s both,
+                 heartBeat 2.2s ease-in-out 2s infinite;
+    }
+    .hint{
+      font-size:clamp(13px,2.8vw,17px);font-style:italic;
+      color:rgba(43,15,47,.52);margin-bottom:36px;
+      animation:fadeUp .65s .9s both;
+    }
+
+    /* button row — YES stays in flow, NO starts here then goes fixed */
+    .actions{
+      display:flex;gap:22px;align-items:center;justify-content:center;
+      animation:fadeUp .65s 1s both;
+    }
+
+    .btn-yes{
+      font-family:inherit;font-size:clamp(17px,4vw,23px);font-weight:400;
+      padding:14px 40px;border-radius:50px;border:none;cursor:pointer;
+      background:linear-gradient(135deg,var(--pink),#ff9ed2);
+      color:#fff;letter-spacing:.3px;
+      box-shadow:0 8px 32px rgba(255,90,162,.35);
+      transition:transform .2s,box-shadow .2s;
+      position:relative;z-index:4;
+    }
+    .btn-yes:hover{transform:scale(1.06) translateY(-2px);box-shadow:0 14px 44px rgba(255,90,162,.48)}
+    .btn-yes:active{transform:scale(.96)}
+
+    /* NO button — initially in-flow placeholder, then becomes fixed */
+    .btn-no-placeholder{
+      /* invisible placeholder so YES doesn't shift when NO goes fixed */
+      font-family:inherit;font-size:clamp(15px,3vw,19px);
+      padding:13px 30px;border-radius:50px;
+      visibility:hidden;pointer-events:none;
+      /* match btn-no size */
+    }
+    .btn-no{
+      font-family:inherit;font-size:clamp(15px,3vw,19px);font-weight:300;
+      padding:13px 30px;border-radius:50px;cursor:pointer;
+      background:rgba(255,255,255,.55);
+      border:1.5px solid rgba(255,90,162,.35);
+      color:rgba(43,15,47,.75);
+      backdrop-filter:blur(10px);
+      box-shadow:0 4px 18px rgba(255,90,162,.12);
+      /* smooth repositioning */
+      transition:left .32s cubic-bezier(.2,.9,.25,1),
+                 top .32s cubic-bezier(.2,.9,.25,1),
+                 transform .18s ease, opacity .3s;
+      position:fixed;
+      z-index:100;
+      white-space:nowrap;
+    }
+    .btn-no:hover{transform:scale(1.04)}
+
+    /* floating messages */
+    .fmsg{
+      position:fixed;pointer-events:none;z-index:200;
+      font-family:inherit;font-size:15px;font-style:italic;
+      color:rgba(43,15,47,.8);
+      background:rgba(255,255,255,.88);backdrop-filter:blur(8px);
+      padding:9px 18px;border-radius:20px;
+      box-shadow:0 6px 24px rgba(90,20,60,.1);
+      opacity:0;transform:translateY(6px) scale(.93);
+      transition:opacity .28s,transform .28s;
+    }
+    .fmsg.show{opacity:1;transform:translateY(-10px) scale(1)}
+
+    /* YES success wave-out */
+    #wave-out{
+      position:fixed;inset:0;z-index:999;pointer-events:none;overflow:hidden;
+      display:none;
+    }
+    #wave-out svg{position:absolute;inset:0;width:100%;height:100%}
+
+    @media(max-width:460px){
+      .actions{flex-direction:column;align-items:center;gap:14px}
+      .btn-yes{width:72vw}
+      .btn-no-placeholder{display:none}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- entrance wave (comes from right, sweeps left) -->
+  <div id="wave-in">
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+      <path id="wi1" fill="#FFD1DC"/>
+      <path id="wi2" fill="#FFC0CB"/>
+      <path id="wi3" fill="#FFB6C1"/>
+    </svg>
+  </div>
+
+  <!-- exit wave (YES click) -->
+  <div id="wave-out">
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+      <path id="wo1" fill="#FFD1DC"/>
+      <path id="wo2" fill="#FFC0CB"/>
+      <path id="wo3" fill="#FFB6C1"/>
+    </svg>
+  </div>
+
+  <canvas id="c"></canvas>
+
+  <main class="scene" id="scene">
+    <p class="teaser">I have one important question…</p>
+    <h1 class="question">
+      Would you go to dinner with me?
+      <span class="emoji-accent"> 🍽️❤️</span>
+    </h1>
+    <p class="hint">The second option seems a little shy today 😏</p>
+    <div class="actions" id="actions">
+      <button class="btn-yes" id="yesBtn">YES ❤️</button>
+      <div class="btn-no-placeholder" id="noPlaceholder">NO 🙈</div>
+    </div>
+  </main>
+
+  <!-- NO floats outside the scene so it's truly viewport-fixed -->
+  <button class="btn-no" id="noBtn">NO 🙈</button>
+
+  <script>
+  (function(){
+
+    /* ════════════════════════════════
+       ENTRANCE WAVE (right → left wipe)
+       The pink wave covers screen, then
+       retracts right revealing the page
+    ════════════════════════════════ */
+    const waveIn = document.getElementById('wave-in');
+
+    function animPath(pathEl, fromX, toX, dur, delay, easing){
+      return new Promise(resolve=>{
+        let start=null;
+        function ease_inOutCubic(t){ return t<.5?4*t*t*t:(t-1)*(2*t-2)*(2*t-2)+1 }
+        setTimeout(()=>{
+          function step(ts){
+            if(!start) start=ts;
+            const t=Math.min((ts-start)/dur,1);
+            const e = easing ? easing(t) : ease_inOutCubic(t);
+            const x = fromX + (toX-fromX)*e;
+            // wavy right edge
+            const w1 = 7*Math.sin(t*Math.PI*2.5);
+            const w2 = 4*Math.sin(t*Math.PI*4.2+0.8);
+            const d=`M${x},0 Q${x+w1},25 ${x+w2},50 Q${x+w1},75 ${x+w2},100 L110,100 L110,0 Z`;
+            pathEl.setAttribute('d',d);
+            if(t<1) requestAnimationFrame(step);
+            else resolve();
+          }
+          requestAnimationFrame(step);
+        },delay);
+      });
+    }
+
+    // Phase 1: wave sweeps in from right (110→0)
+    const p1=animPath(document.getElementById('wi1'),110,-5,550,0);
+    const p2=animPath(document.getElementById('wi2'),110,-5,520,80);
+    const p3=animPath(document.getElementById('wi3'),110,-5,490,160);
+
+    Promise.all([p1,p2,p3]).then(()=>{
+      // Brief pause then retract left (−5 → −110)
+      setTimeout(()=>{
+        const r1=animPath(document.getElementById('wi1'),-5,-115,500,0);
+        const r2=animPath(document.getElementById('wi2'),-5,-115,480,90);
+        const r3=animPath(document.getElementById('wi3'),-5,-115,460,170);
+        // Reveal page content
+        document.getElementById('scene').classList.add('visible');
+        Promise.all([r1,r2,r3]).then(()=>{
+          waveIn.classList.add('done');
+          // Start NO button after reveal
+          positionNoBtn();
+        });
+      },80);
+    });
+
+    /* ════════════════════════════════
+       PARTICLES
+    ════════════════════════════════ */
+    const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+    let W,H;
+    function rs(){ W=cv.width=innerWidth; H=cv.height=innerHeight; }
+    rs(); addEventListener('resize',rs);
+
+    const ps=[];
+    function spawnP(x,y,type){
+      ps.push({
+        x,y,type,
+        vx:(Math.random()-.5)*(type==='h'?1.1:.45),
+        vy:(Math.random()-.72)*(type==='h'?1.3:.5),
+        life:70+Math.random()*90,
+        maxLife:160,
+        size:type==='h'?(Math.random()*7+4):(Math.random()*3+1.5),
+        hue:340+Math.random()*25
+      });
+    }
+    for(let i=0;i<55;i++) spawnP(Math.random()*innerWidth,Math.random()*innerHeight,'d');
+
+    function drawHeart(ctx,x,y,s,hue,a){
+      ctx.save();ctx.globalAlpha=a;ctx.translate(x,y);ctx.beginPath();
+      ctx.moveTo(0,s/4);
+      ctx.bezierCurveTo(0,-s/2,-s,-s/2,-s,s/4);
+      ctx.bezierCurveTo(-s,s,0,s*1.4,0,s*1.7);
+      ctx.bezierCurveTo(0,s*1.4,s,s,s,s/4);
+      ctx.bezierCurveTo(s,-s/2,0,-s/2,0,s/4);
+      ctx.fillStyle=`hsl(${hue},88%,70%)`;
+      ctx.shadowBlur=s*2;ctx.shadowColor=`hsl(${hue},90%,75%)`;
+      ctx.fill();ctx.restore();
+    }
+
+    function loop(){
+      ctx.clearRect(0,0,W,H);
+      for(let i=ps.length-1;i>=0;i--){
+        const p=ps[i];
+        p.x+=p.vx;p.y+=p.vy;p.life--;
+        const a=Math.max(0,p.life/p.maxLife)*0.75;
+        if(p.type==='h'){
+          drawHeart(ctx,p.x,p.y,p.size,p.hue,a);
+          if(p.life<0){ ps.splice(i,1); continue; }
+        } else {
+          ctx.save();ctx.globalAlpha=a;
+          ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+          ctx.fillStyle=`hsl(${p.hue},75%,80%)`;ctx.fill();ctx.restore();
+          // wrap dust
+          if(p.y<-5)p.y=H+5;if(p.x<-5)p.x=W+5;if(p.x>W+5)p.x=-5;
+        }
+      }
+      requestAnimationFrame(loop);
+    }
+    loop();
+
+    /* ════════════════════════════════
+       NO BUTTON — always visible, 
+       but runs away on approach
+    ════════════════════════════════ */
+    const noBtn=document.getElementById('noBtn');
+    const msgs=["Nice try 😏","Only one right answer 💖","Nope, not today 😂","That button is shy 😌","Try the pink one 💅","Not a chance 😂"];
+    let noBtnReady=false;
+    let lastEscape=0;
+
+    function positionNoBtn(){
+      // Anchor NO button next to YES initially
+      const ph=document.getElementById('noPlaceholder');
+      const r=ph.getBoundingClientRect();
+      noBtn.style.left=r.left+'px';
+      noBtn.style.top=r.top+'px';
+      noBtn.style.opacity='1';
+      noBtnReady=true;
+    }
+
+    function escape(){
+      if(!noBtnReady) return;
+      const now=Date.now();
+      if(now-lastEscape<200) return; // debounce
+      lastEscape=now;
+
+      const pad=20;
+      const bw=noBtn.offsetWidth||90;
+      const bh=noBtn.offsetHeight||48;
+      // pick a spot far from current position
+      let nx,ny,attempts=0;
+      const cr=noBtn.getBoundingClientRect();
+      const cx=cr.left+cr.width/2, cy=cr.top+cr.height/2;
+      do {
+        nx=pad+Math.random()*(W-bw-pad*2);
+        ny=pad+Math.random()*(H-bh-pad*2);
+        attempts++;
+      } while(Math.hypot(nx+bw/2-cx,ny+bh/2-cy)<Math.min(W,H)*0.3 && attempts<8);
+
+      noBtn.style.left=Math.round(nx)+'px';
+      noBtn.style.top=Math.round(ny)+'px';
+      showMsg(msgs[Math.floor(Math.random()*msgs.length)]);
+    }
+
+    // run away on hover
+    noBtn.addEventListener('mouseenter', escape);
+    // run away on touch
+    noBtn.addEventListener('touchstart', e=>{ e.preventDefault(); escape(); });
+    // proximity chase
+    document.addEventListener('mousemove', ev=>{
+      if(!noBtnReady) return;
+      const r=noBtn.getBoundingClientRect();
+      const dist=Math.hypot(ev.clientX-(r.left+r.width/2), ev.clientY-(r.top+r.height/2));
+      if(dist < 120 && Math.random()>.4) escape();
+    });
+    // random wiggle
+    setInterval(()=>{ if(noBtnReady&&Math.random()<.28) escape(); }, 2800);
+
+    function showMsg(text){
+      const el=document.createElement('div');el.className='fmsg';
+      el.textContent=text;
+      el.style.left=Math.round(16+Math.random()*(W-220))+'px';
+      el.style.top=Math.round(16+Math.random()*(H-80))+'px';
+      document.body.appendChild(el);
+      setTimeout(()=>el.classList.add('show'),20);
+      setTimeout(()=>el.classList.remove('show'),1900);
+      setTimeout(()=>el.remove(),2300);
+    }
+
+    /* ════════════════════════════════
+       YES — pink wave exit to page3
+    ════════════════════════════════ */
+    document.getElementById('yesBtn').addEventListener('click', ()=>{
+      // burst hearts
+      for(let i=0;i<24;i++) spawnP(innerWidth/2, innerHeight/2,'h');
+
+      const waveOut=document.getElementById('wave-out');
+      waveOut.style.display='block';
+
+      // Blur scene out
+      const scene=document.getElementById('scene');
+      scene.style.transition='filter .4s ease,opacity .4s ease';
+      scene.style.filter='blur(10px)';
+      scene.style.opacity='0';
+      noBtn.style.transition='opacity .3s';
+      noBtn.style.opacity='0';
+
+      // Wave sweeps left→right covering screen
+      function swOut(pathEl, delay){
+        let start=null;
+        setTimeout(()=>{
+          function step(ts){
+            if(!start) start=ts;
+            const t=Math.min((ts-start)/650,1);
+            const e=t<.5?4*t*t*t:(t-1)*(2*t-2)*(2*t-2)+1;
+            const x=-10+(120)*e;
+            const w1=6*Math.sin(t*Math.PI*2.8);
+            const w2=4*Math.sin(t*Math.PI*5+1);
+            const d=`M-10,0 Q${x+w1},25 ${x+w2},50 Q${x+w1},75 ${x+w2},100 L-10,100 Z`;
+            pathEl.setAttribute('d',d);
+            if(t<1) requestAnimationFrame(step);
+          }
+          requestAnimationFrame(step);
+        },delay);
+      }
+      swOut(document.getElementById('wo1'),0);
+      swOut(document.getElementById('wo2'),90);
+      swOut(document.getElementById('wo3'),175);
+
+      // hearts on wave
+      for(let i=0;i<12;i++){
+        setTimeout(()=>{
+          const h=document.createElement('div');
+          Object.assign(h.style,{
+            position:'fixed',left:(5+Math.random()*90)+'%',
+            top:(10+Math.random()*80)+'%',fontSize:(14+Math.random()*18)+'px',
+            zIndex:'1000',opacity:'0',transform:'scale(.5)',
+            transition:'opacity .5s,transform .6s cubic-bezier(.2,.9,.25,1)',
+            pointerEvents:'none',
+            filter:'drop-shadow(0 0 6px rgba(255,90,162,.7))'
+          });
+          h.textContent='❤️';
+          document.body.appendChild(h);
+          setTimeout(()=>{h.style.opacity='.9';h.style.transform='scale(1)'},20);
+          setTimeout(()=>h.remove(),900);
+        }, i*70);
+      }
+
+      setTimeout(()=>location.href='page3.html', 1050);
+    });
+
+  })();
+  </script>
+</body>
+</html>

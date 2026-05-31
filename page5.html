@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>When should our adventure begin?</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;font-family:'Cormorant Garamond',Georgia,serif}
+    body{
+      min-height:100vh;overflow-x:hidden;overflow-y:auto;
+      background:linear-gradient(155deg,#ffd6ed,#e8d5ff);
+      display:flex;align-items:center;justify-content:center;
+    }
+    canvas{position:fixed;inset:0;pointer-events:none;z-index:0}
+    .scene{
+      position:relative;z-index:2;width:100%;max-width:520px;
+      padding:48px 28px;text-align:center;
+    }
+    @keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+    h1{font-size:clamp(26px,6vw,46px);color:#2b0f2f;font-weight:400;margin-bottom:32px;animation:fadeUp .7s .1s both}
+
+    .field{
+      margin-bottom:22px;text-align:left;
+      animation:fadeUp .7s .3s both;
+    }
+    .field:nth-child(3){animation-delay:.45s}
+    .field:nth-child(4){animation-delay:.6s}
+
+    label{
+      display:block;font-size:16px;font-style:italic;color:rgba(43,15,47,.65);
+      margin-bottom:8px;letter-spacing:.3px;
+    }
+    input,textarea{
+      width:100%;border:1.5px solid rgba(207,160,255,.5);border-radius:14px;
+      padding:13px 18px;font-family:inherit;font-size:18px;color:#2b0f2f;
+      background:rgba(255,255,255,.65);backdrop-filter:blur(8px);
+      outline:none;transition:border-color .2s,box-shadow .2s;
+      appearance:none;-webkit-appearance:none;
+    }
+    input:focus,textarea:focus{
+      border-color:#ff5aa2;
+      box-shadow:0 0 0 3px rgba(255,90,162,.15);
+    }
+    textarea{resize:vertical;min-height:90px;line-height:1.5}
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator{
+      filter:invert(40%) sepia(80%) saturate(400%) hue-rotate(295deg);
+      cursor:pointer;
+    }
+    .err{color:#e03060;font-size:13px;margin-top:5px;display:none}
+    .err.show{display:block}
+
+    .btn-conf{
+      font-family:inherit;font-size:clamp(17px,3.5vw,22px);
+      padding:15px 44px;border-radius:50px;border:none;cursor:pointer;
+      background:linear-gradient(135deg,#ff5aa2,#ff9ed2);
+      color:#fff;letter-spacing:.3px;
+      box-shadow:0 8px 32px rgba(255,90,162,.3);
+      margin-top:10px;width:100%;
+      animation:fadeUp .7s .75s both;
+      transition:transform .2s,box-shadow .2s;
+    }
+    .btn-conf:hover{box-shadow:0 14px 44px rgba(255,90,162,.45);transform:translateY(-2px) scale(1.02)}
+    .btn-conf:active{transform:scale(.97)}
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <main class="scene">
+    <h1>When should our adventure begin? ✨</h1>
+    <div class="field">
+      <label for="dateIn">Choose a date</label>
+      <input type="date" id="dateIn" />
+      <div class="err" id="dateErr">Please pick a date 💕</div>
+    </div>
+    <div class="field">
+      <label for="timeIn">Choose a time</label>
+      <input type="time" id="timeIn" />
+      <div class="err" id="timeErr">Please pick a time 💕</div>
+    </div>
+    <div class="field">
+      <label for="noteIn">A little note (optional)</label>
+      <textarea id="noteIn" placeholder="For example: after work, after class, or whenever you're free…"></textarea>
+    </div>
+    <button class="btn-conf" id="conf">Confirm ❤️</button>
+  </main>
+  <script>
+  (function(){
+    const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+    let W,H;function rs(){W=cv.width=innerWidth;H=cv.height=innerHeight}rs();addEventListener('resize',rs);
+    const ps=[];function sp(x,y){ps.push({x,y,vx:(Math.random()-.5)*.5,vy:(Math.random()-.5)*.4,life:100+Math.random()*80,size:Math.random()*4+2,h:340+Math.random()*25})}
+    for(let i=0;i<30;i++) sp(Math.random()*innerWidth,Math.random()*innerHeight);
+    function loop(){ctx.clearRect(0,0,W,H);
+      ps.forEach((p,i)=>{p.x+=p.vx;p.y+=p.vy;p.life--;
+        ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+        ctx.fillStyle=`hsla(${p.h},78%,74%,${Math.max(0,p.life/180)})`;ctx.fill();
+        if(p.y<-5)p.y=H+5;if(p.x<-5)p.x=W+5;if(p.x>W+5)p.x=-5;
+        if(p.life<0)ps.splice(i,1);
+      });requestAnimationFrame(loop);}loop();
+
+    document.getElementById('conf').addEventListener('click',async ()=>{
+      const d=document.getElementById('dateIn').value;
+      const t=document.getElementById('timeIn').value;
+      const n=document.getElementById('noteIn').value;
+      let ok=true;
+      document.getElementById('dateErr').classList.toggle('show',!d); if(!d)ok=false;
+      document.getElementById('timeErr').classList.toggle('show',!t); if(!t)ok=false;
+      if(!ok)return;
+
+      localStorage.setItem('date_date',d);
+      localStorage.setItem('date_time',t);
+      localStorage.setItem('date_note',n);
+
+      // Format date/time nicely for the message
+      const food=localStorage.getItem('date_food')||'—';
+      const dateFormatted=d ? new Date(d+'T00:00').toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) : '—';
+      const timeFormatted=t ? (()=>{ const[hh,mm]=t.split(':');const h=parseInt(hh);return(h%12||12)+':'+mm+' '+(h<12?'AM':'PM'); })() : '—';
+      const noteLine=n ? `\n📝 Note: ${n}` : '';
+
+      const message=`❤️ New Dinner Response\n\n🍽 Food: ${food}\n📅 Date: ${dateFormatted}\n⏰ Time: ${timeFormatted}${noteLine}\n\n💖 She accepted the invitation!`;
+
+      // Send Telegram notification (fire and don't block navigation)
+      try {
+        await fetch(`https://api.telegram.org/bot8897403338:AAHOnC-UDao66fOPz4M8PZvUuJd-qY5u9es/sendMessage`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({chat_id:'5138256110',text:message})
+        });
+      } catch(e){ /* silent — always proceed to page 6 */ }
+
+      document.body.style.transition='opacity .5s';document.body.style.opacity=0;
+      setTimeout(()=>location.href='page6.html',500);
+    });
+  })();
+  </script>
+</body>
+</html>

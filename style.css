@@ -1,0 +1,382 @@
+/* Reset and base styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --wave-y: 110px; /* Initially filled at 110% (empty) */
+  --bg-color-1: #0a0a0a;
+  --bg-color-2: #161616;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--bg-color-1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+}
+
+/* Background Overlays for Silky-Smooth Transition */
+.page-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+  transition: opacity 3.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.grayscale-bg {
+  background-image: url('assets/empty_heart_bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 1;
+}
+
+.color-bg {
+  background-image: url('assets/filled_heart_bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0;
+}
+
+/* Particle Canvas */
+#particle-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+  pointer-events: none;
+}
+
+
+
+/* Interactive Main Container */
+.main-container {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+}
+
+/* Heart Wrapper and Outlines */
+.heart-wrapper {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  cursor: pointer;
+  transform-origin: center;
+  transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  -webkit-tap-highlight-color: transparent;
+  --fill-level: 0;
+}
+
+.heart-wrapper:hover {
+  transform: scale(1.04);
+}
+
+.heart-wrapper:active {
+  transform: scale(0.96);
+}
+
+/* Liquid/SVG Styling */
+.heart-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.heart-liquid {
+  fill: #ff2d55;
+  transform: translateY(512px);
+  transform-origin: top;
+  transform-box: fill-box;
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.liquid-wave {
+  fill: #ff2d55;
+  filter:
+    drop-shadow(0 0 20px rgba(255, 45, 85, 0.8))
+    drop-shadow(0 0 45px rgba(255, 45, 85, 0.55));
+  transform: translateY(512px);
+  transform-origin: top;
+  transform-box: fill-box;
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.liquid-wave.wave-bounce {
+  animation: wave-bounce 0.85s ease-in-out;
+}
+
+@keyframes wave-bounce {
+  0% { transform: translateY(var(--liquid-translate, 512px)) translateX(0); }
+  25% { transform: translateY(var(--liquid-translate, 512px)) translateX(-8px); }
+  50% { transform: translateY(var(--liquid-translate, 512px)) translateX(8px); }
+  100% { transform: translateY(var(--liquid-translate, 512px)) translateX(0); }
+}
+
+.heart-path {
+  fill: none;
+  stroke: white;
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter:
+    drop-shadow(0 0 8px rgba(255, 255, 255, 0.9))
+    drop-shadow(0 0 20px rgba(255, 255, 255, 0.7))
+    drop-shadow(0 0 35px rgba(255, 255, 255, 0.5));
+}
+
+.heart-outline {
+  stroke: #ffffff;
+  stroke-width: 1.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
+  transition: stroke 3.5s cubic-bezier(0.4, 0, 0.2, 1), filter 3.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Waves sloshing animations */
+.wave {
+  transition: transform 0.1s linear;
+}
+
+#wave-bg {
+  fill: #8b001a;
+  opacity: 0.65;
+  animation: wave-left 3.5s linear infinite;
+}
+
+#wave-fg {
+  fill: #ff2d55;
+  opacity: 0.9;
+  animation: wave-right 2.4s linear infinite;
+}
+
+@keyframes wave-left {
+  0% { transform: translate3d(0, var(--wave-y), 0); }
+  100% { transform: translate3d(-100px, var(--wave-y), 0); }
+}
+
+@keyframes wave-right {
+  0% { transform: translate3d(-100px, var(--wave-y), 0); }
+  100% { transform: translate3d(0, var(--wave-y), 0); }
+}
+
+/* Heart pulse animation when clicked in color mode */
+@keyframes heart-gentle-pulse {
+  0% { transform: scale(1.04); }
+  15% { transform: scale(1.15) rotate(-2deg); }
+  35% { transform: scale(0.94) rotate(2deg); }
+  55% { transform: scale(1.06) rotate(-1deg); }
+  75% { transform: scale(0.98) rotate(1deg); }
+  100% { transform: scale(1.04) rotate(0deg); }
+}
+
+.pulse-active {
+  animation: heart-gentle-pulse 0.7s ease-in-out;
+}
+
+/* Text Containers and Fade Transitions */
+.text-container {
+  margin-top: 35px;
+  height: 120px;
+  position: relative;
+  width: 100%;
+  min-width: 320px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.instruction-text {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 1.8s cubic-bezier(0.4, 0, 0.2, 1), transform 1.8s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.instruction-text.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.fade-text {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.55rem;
+  letter-spacing: 0.5px;
+  font-style: italic;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  line-height: 1.4;
+  transition: color 3.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pink-text {
+  color: #ff2d55;
+  font-weight: 400;
+}
+
+.small-italic {
+  font-size: 1.25rem;
+  opacity: 0.9;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+/* Hand Pointer Icon styling */
+.hand-wrapper {
+  display: inline-block;
+  margin-bottom: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  animation: hand-sway 3.2s ease-in-out infinite alternate;
+  transition: color 3.5s cubic-bezier(0.4, 0, 0.2, 1), filter 3.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hand-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.click-ray {
+  stroke: currentColor;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.click-ray.animated {
+  animation: ray-pulse 1.6s infinite;
+}
+
+@keyframes ray-pulse {
+  0%, 100% { opacity: 0.1; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+@keyframes hand-sway {
+  0% { transform: translateY(0) rotate(-2deg); }
+  100% { transform: translateY(-8px) rotate(2deg); }
+}
+
+/* Elegant Separator Line */
+.elegant-line {
+  width: 55px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.22);
+  margin: 15px auto 0 auto;
+  position: relative;
+  transition: background 3.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.elegant-line::after {
+  content: '♥';
+  position: absolute;
+  top: -6.5px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.85);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.65rem;
+  transition: color 3.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* State Modification: Colorful Bloom */
+body.is-filled-state .grayscale-bg {
+  opacity: 0;
+  filter: saturate(0.8) blur(0.2px);
+}
+
+body.is-filled-state .color-bg {
+  opacity: 1;
+  filter: saturate(1.15) brightness(1.05) contrast(1.05);
+}
+
+body.is-filled-state .main-container {
+  filter: saturate(1.02);
+}
+
+body.is-filled-state .heart-svg {
+  filter: drop-shadow(0 0 22px rgba(255, 45, 85, 0.65)) drop-shadow(0 0 45px rgba(255, 180, 200, 0.45));
+}
+
+body.is-filled-state .heart-outline {
+  stroke: #ffc2d1;
+  filter: drop-shadow(0 0 10px #ff8fa7) drop-shadow(0 0 40px rgba(255, 145, 170, 0.45));
+}
+
+body.is-filled-state .hand-wrapper {
+  color: #ff8fa7;
+  filter: drop-shadow(0 0 8px rgba(255, 145, 170, 0.4));
+}
+
+body.is-filled-state .fade-text {
+  color: #ffeaf1;
+}
+
+body.is-filled-state .pink-text {
+  color: #ff7fa2;
+}
+
+body.is-filled-state .elegant-line {
+  background: rgba(255, 145, 170, 0.28);
+}
+
+body.is-filled-state .elegant-line::after {
+  color: rgba(255, 145, 170, 0.75);
+}
+
+body.is-filled-state .text-container {
+  transform: translateY(-6px);
+}
+
+body.is-filled-state .elegant-line {
+  background: rgba(255, 45, 85, 0.25);
+}
+
+body.is-filled-state .elegant-line::after {
+  color: rgba(255, 45, 85, 0.6);
+}
+
+/* Mobile & Desktop Responsiveness */
+@media (max-width: 768px) {
+  .heart-wrapper {
+    width: 200px;
+    height: 200px;
+  }
+  
+
+  
+  .fade-text {
+    font-size: 1.35rem;
+  }
+  
+  .small-italic {
+    font-size: 1.1rem;
+  }
+}

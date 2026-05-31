@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>It's official ❤️</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;font-family:'Cormorant Garamond',Georgia,serif}
+    body{
+      min-height:100vh;overflow:hidden;
+      background:linear-gradient(145deg,#ffc2e0 0%,#ffd6ed 35%,#e8d5ff 70%,#d4b8ff 100%);
+      display:flex;align-items:center;justify-content:center;
+    }
+    canvas{position:fixed;inset:0;pointer-events:none;z-index:0}
+    .scene{position:relative;z-index:2;text-align:center;padding:40px 24px;max-width:620px}
+
+    @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+    @keyframes shimmer{0%,100%{filter:drop-shadow(0 0 16px rgba(255,90,162,.4))}50%{filter:drop-shadow(0 0 32px rgba(255,90,162,.75))}}
+    @keyframes floatUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+    /* summary card */
+    .card{
+      background:rgba(255,255,255,.6);backdrop-filter:blur(14px);
+      border-radius:24px;padding:24px 32px;margin-bottom:32px;
+      border:1px solid rgba(255,255,255,.85);
+      box-shadow:0 8px 48px rgba(90,20,60,.09);
+      animation:fadeUp .7s .2s both;
+    }
+    .card-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+    .card-row:last-child{margin-bottom:0}
+    .card-label{font-size:14px;font-style:italic;color:rgba(43,15,47,.55);min-width:54px}
+    .card-val{font-size:19px;color:#2b0f2f;font-weight:400}
+
+    /* typing lines */
+    .lines{margin-bottom:30px}
+    .line{
+      display:block;font-size:clamp(22px,5.5vw,40px);color:#2b0f2f;
+      line-height:1.4;margin-bottom:4px;
+      opacity:0;transform:translateY(14px);
+      transition:opacity .65s cubic-bezier(.2,.9,.25,1),transform .65s;
+    }
+    .line.show{opacity:1;transform:none}
+    .line em{font-style:italic;color:#c4407a}
+
+    .tagline{
+      font-size:clamp(15px,3.5vw,22px);font-style:italic;
+      color:rgba(43,15,47,.65);margin-bottom:36px;
+      opacity:0;transition:opacity .7s;
+    }
+    .tagline.show{opacity:1}
+
+    /* heart button */
+    .heart-btn{
+      width:80px;height:80px;border-radius:50%;border:none;cursor:pointer;
+      background:linear-gradient(135deg,#ff5aa2,#ffc2e0);
+      font-size:36px;display:inline-flex;align-items:center;justify-content:center;
+      box-shadow:0 12px 40px rgba(255,90,162,.4);
+      animation:shimmer 2.5s ease-in-out infinite;
+      transition:transform .2s;opacity:0;transition:opacity .7s,transform .2s;
+    }
+    .heart-btn.show{opacity:1}
+    .heart-btn:hover{transform:scale(1.12)}
+    .heart-btn:active{transform:scale(.94)}
+
+    /* confetti hearts */
+    .confetti-heart{
+      position:fixed;pointer-events:none;z-index:10;
+      font-size:clamp(18px,4vw,28px);
+      animation:confettiFall linear forwards;
+    }
+    @keyframes confettiFall{
+      0%{opacity:1;transform:translateY(-30px) rotate(0deg) scale(1)}
+      100%{opacity:0;transform:translateY(100vh) rotate(360deg) scale(.4)}
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <main class="scene">
+    <div class="card" id="summary">
+      <div class="card-row"><span class="card-label">🍽️ Food</span><span class="card-val" id="sv-food">—</span></div>
+      <div class="card-row"><span class="card-label">📅 Date</span><span class="card-val" id="sv-date">—</span></div>
+      <div class="card-row"><span class="card-label">🕐 Time</span><span class="card-val" id="sv-time">—</span></div>
+      <div class="card-row" id="sv-note-row" style="display:none">
+        <span class="card-label">💬 Note</span><span class="card-val" id="sv-note"></span>
+      </div>
+    </div>
+    <div class="lines">
+      <span class="line" id="l1"></span>
+      <span class="line" id="l2"></span>
+      <span class="line" id="l3"></span>
+      <span class="line" id="l4"></span>
+    </div>
+    <p class="tagline" id="tagline">Thank you for saying yes 🌹</p>
+    <button class="heart-btn" id="hbtn" aria-label="Celebrate">❤️</button>
+  </main>
+  <script>
+  (function(){
+    /* ── load saved data ── */
+    const food=localStorage.getItem('date_food')||'Something delicious';
+    const rawDate=localStorage.getItem('date_date')||'';
+    const rawTime=localStorage.getItem('date_time')||'';
+    const note=localStorage.getItem('date_note')||'';
+    document.getElementById('sv-food').textContent=food;
+    if(rawDate){const d=new Date(rawDate+'T00:00');document.getElementById('sv-date').textContent=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}
+    if(rawTime){const[hh,mm]=rawTime.split(':');const h=parseInt(hh);document.getElementById('sv-time').textContent=(h%12||12)+':'+mm+' '+(h<12?'AM':'PM')}
+    if(note){document.getElementById('sv-note').textContent=note;document.getElementById('sv-note-row').style.display='flex'}
+
+    /* ── particles ── */
+    const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+    let W,H;function rs(){W=cv.width=innerWidth;H=cv.height=innerHeight}rs();addEventListener('resize',rs);
+    const ps=[];
+    function spDust(x,y){ps.push({x,y,type:'d',vx:(Math.random()-.5)*.4,vy:-(Math.random()*.4+.1),life:999,size:Math.random()*4+2,h:340+Math.random()*25,a:.3+Math.random()*.35})}
+    function spHeart(x,y){ps.push({x,y,type:'h',vx:(Math.random()-.5)*4,vy:-(Math.random()*4+1.5),life:80+Math.random()*50,size:Math.random()*8+5,h:340+Math.random()*20,a:1})}
+    for(let i=0;i<50;i++) spDust(Math.random()*innerWidth,Math.random()*innerHeight);
+
+    function loop(){ctx.clearRect(0,0,W,H);
+      ps.forEach((p,i)=>{
+        p.x+=p.vx;p.y+=p.vy;
+        if(p.type!=='d')p.life--;
+        else{if(p.y<-5)p.y=H+5;if(p.x<-5)p.x=W+5;if(p.x>W+5)p.x=-5;}
+        const al=p.type==='d'?p.a:Math.max(0,p.life/130);
+        ctx.save();ctx.globalAlpha=al;
+        if(p.type==='h'){
+          ctx.translate(p.x,p.y);ctx.beginPath();
+          const s=p.size;ctx.moveTo(0,s/4);
+          ctx.bezierCurveTo(0,-s/2,-s,-s/2,-s,s/4);ctx.bezierCurveTo(-s,s,0,s*1.4,0,s*1.7);
+          ctx.bezierCurveTo(0,s*1.4,s,s,s,s/4);ctx.bezierCurveTo(s,-s/2,0,-s/2,0,s/4);
+          ctx.fillStyle=`hsl(${p.h},90%,70%)`;ctx.shadowBlur=12;ctx.shadowColor=`hsl(${p.h},90%,70%)`;ctx.fill();
+        } else {
+          ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+          ctx.fillStyle=`hsl(${p.h},78%,76%)`;ctx.fill();
+        }
+        ctx.restore();
+        if(p.type!=='d'&&p.life<0)ps.splice(i,1);
+      });requestAnimationFrame(loop);}loop();
+
+    /* ── typing reveal ── */
+    const lines=[
+      {id:'l1',text:'Perfect ❤️'},
+      {id:'l2',text:'It\'s official now.'},
+      {id:'l3',text:'All that\'s left is for us to meet.'},
+      {id:'l4',text:'Get ready for a delicious evening 🍽️❤️'},
+    ];
+    let li=0;
+    function nextLine(){
+      if(li>=lines.length){
+        setTimeout(()=>{document.getElementById('tagline').classList.add('show');document.getElementById('hbtn').classList.add('show')},400);
+        return;
+      }
+      const{id,text}=lines[li++];const el=document.getElementById(id);
+      el.classList.add('show');let i=0;
+      function type(){if(i<text.length){el.textContent+=text[i++];setTimeout(type,36+Math.random()*24)}else setTimeout(nextLine,800)}
+      setTimeout(type,80);
+    }
+    setTimeout(nextLine,800);
+
+    /* ── heart button celebration ── */
+    document.getElementById('hbtn').addEventListener('click',celebrate);
+    function celebrate(){
+      // burst particles
+      for(let i=0;i<50;i++) spHeart(innerWidth/2,innerHeight/2);
+      // confetti hearts across the screen
+      const emojis=['❤️','🌹','💕','💖','✨','🌸'];
+      for(let i=0;i<32;i++){
+        const el=document.createElement('div');el.className='confetti-heart';
+        el.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+        el.style.left=Math.random()*100+'vw';
+        el.style.top='0';
+        const dur=1.8+Math.random()*1.4;
+        el.style.animationDuration=dur+'s';
+        el.style.animationDelay=Math.random()*.6+'s';
+        document.body.appendChild(el);
+        setTimeout(()=>el.remove(),(dur+.8)*1000);
+      }
+      // glow pulse on button
+      const btn=document.getElementById('hbtn');
+      btn.style.transform='scale(1.25)';
+      setTimeout(()=>btn.style.transform='',300);
+    }
+  })();
+  </script>
+</body>
+</html>
